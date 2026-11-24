@@ -18,33 +18,47 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import static com.riseofthebeasts.BeastState.*;
 
 public final class Encounters {
-    private static final int RANGE=78;
     @SubscribeEvent public static void tick(TickEvent.LevelTickEvent event) {
         if(event.phase!=TickEvent.Phase.END || !(event.level instanceof ServerLevel level)) return;
         BeastState data=BeastState.get(level);
         if(level.dimension()==Level.OVERWORLD && level.getGameTime()%40==0) discoverCavern(level,data);
         for(Animal a:List.copyOf(data.animals.values())) {
             if(level.getGameTime()%8==0) sections(level,a);
-            if(a.active.isEmpty()) continue;
+            if(a.active.isEmpty() && a.move!=Move.DEATH) continue;
+            if(a.cinematic()) {
+                if(a.remaining==(a.move==Move.INTRO?Animal.INTRO_TICKS:Animal.DEATH_TICKS))sceneSound(a);
+                if(a.move==Move.DEATH && a.remaining==1) {
+                    a.bar.removeAllPlayers(); a.active.values().forEach(Giant::discard);
+                    a.active.clear(); data.animals.remove(a.id); data.setDirty(); continue;
+                }
+                if(--a.remaining==0){a.move=Move.REST;a.cooldown=30;}
+            }
             a.clock+=a.burst>0?4:1;
             if(a.burst>0)a.burst--;
             if(a.guard>0)a.guard--;
-            if(tickStranding(level,a))continue;
+            a.recoil=a.recoil>.04?a.recoil*.8:0;
+            if(a.move!=Move.DEATH && tickStranding(level,a))continue;
             a.active.values().removeIf(Giant::isRemoved);
             for(Giant g:a.active.values())g.sync();
-            fight(level,a);
+            if(a.cinematic() && a.remaining%8==0) {
+                for(Giant g:a.active.values()) {
+                    if(!g.head() && g.section.index()%5!=0)continue;
+                    var effect=a.levi?ParticleTypes.BUBBLE_COLUMN_UP:a.move==Move.DEATH?ParticleTypes.ASH:ParticleTypes.SPLASH;
+                    level.sendParticles(effect,g.getX(),g.getY()+2,g.getZ(),12,3,2,4,.07);
+                }
+            } else if(!a.cinematic())fight(level,a);
             data.setDirty();
         }
     }
     static boolean tickStranding(ServerLevel level,Animal a) {
         Giant head=a.active.get(new Section(0,0));
-        if(!a.levi || head==null || head.isRemoved() || !stranded(a,waterAtHead(level,head)))return false;
+        if(a.move==Move.DEATH || !a.levi || head==null || head.isRemoved() || !stranded(a,waterAtHead(level,head)))return false;
         finish(level,head,false);
         return true;
     }
     static boolean waterAtHead(ServerLevel level,Giant g) {
         // Sample the jaw footprint at the waterline, including a one-block-deep pool.
-        BlockPos base=g.blockPosition();
+        BlockPos base=g.animal==null?g.blockPosition():BlockPos.containing(g.getX(),g.animal.origin.y,g.getZ());
         for(int dx=-3;dx<=3;dx+=3)for(int dz=-4;dz<=4;dz+=4)
             for(int dy=-1;dy<=1;dy++)
                 if(level.hasChunkAt(base.offset(dx,dy,dz)) && level.getFluidState(base.offset(dx,dy,dz)).is(FluidTags.WATER))return true;
@@ -62,8 +76,8 @@ public final class Encounters {
                 data.discovered.contains(center.asLong()) || !level.hasChunkAt(center) ||
                 !level.getBlockState(center.offset(7,-6,0)).is(net.minecraft.world.level.block.Blocks.SEA_LANTERN) || !Cavern.valid(level,center))continue;
             data.discovered.add(center.asLong());
-            data.create(true,new Vec3(center.getX(),-42,center.getZ()-360));
-            announce(p,"A row of pale suckers stirs below you. The jaw lies to the north.");
+            data.create(true,new Vec3(center.getX(),-46,center.getZ()-360));
+            announce(p,"A row of orange suckers stirs below you. The jaw lies to the north.");
         }
     }
     @SubscribeEvent public static void summon(PlayerInteractEvent.RightClickItem event) {
@@ -74,7 +88,7 @@ public final class Encounters {
         boolean nearby=BeastState.get(level).animals.values().stream().anyMatch(a->!a.levi &&
             Math.abs(p.getX()-a.origin.x)<100 && p.getZ()>=a.origin.z-100 && p.getZ()<=a.origin.z+a.length()+100);
         if(nearby) { announce(p,"The serpent is already listening."); return; }
-        BeastState.get(level).create(false,p.position().add(0,-2,18));
+        BeastState.get(level).create(false,new Vec3(p.getX(),level.getSeaLevel(),p.getZ()+52));
         if(!p.getAbilities().instabuild)event.getItemStack().shrink(1);
         announce(p,"Jormungandr: Who called my name?");
         event.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS); event.setCanceled(true);
@@ -84,15 +98,17 @@ public final class Encounters {
         List<ServerPlayer> observers=new ArrayList<>();
         for(ServerPlayer player:level.players()) {
             Vec3 p=player.position();
-            if(Math.abs(p.x-a.origin.x)>RANGE+56 || Math.abs(p.y-a.origin.y)>RANGE)continue;
+            int sight=a.levi?112:246;
+            if(Math.abs(p.x-a.origin.x)>sight+(a.levi?134:24) || p.y<a.origin.y-sight || p.y>a.origin.y+sight+200)continue;
             int around=(int)Math.floor((p.z-a.origin.z)/16);
             boolean visible=false;
-            for(int i=Math.max(0,around-6);i<=Math.min((a.length()-1)/16,around+6);i++) {
-                int lanes=a.levi && i>0?2:0;
-                for(int lane=-lanes;lane<=lanes;lane++) {
+            int steps=(sight+40)/16+1;
+            for(int i=Math.max(0,around-steps);i<=Math.min((a.length()-1)/16,around+steps);i++) {
+                int lanes=a.levi && i>0?4:0;
+                for(int lane=-lanes;lane<=(lanes==0?0:lanes-1);lane++) {
                     if(i*16>=a.laneLength(lane))continue;
                     var key=new Section(i,lane); Vec3 pos=a.position(key);
-                    if(p.distanceToSqr(pos)>RANGE*RANGE || !level.isPositionEntityTicking(BlockPos.containing(pos)))continue;
+                    if(p.distanceToSqr(pos)>sight*sight || !level.isPositionEntityTicking(BlockPos.containing(pos)))continue;
                     wanted.add(key); visible=true;
                 }
             }
@@ -112,7 +128,7 @@ public final class Encounters {
     }
     static void damage(ServerLevel level,Giant part,float amount) {
         Animal a=part.animal;
-        if(a.health<=0 || a.move==Move.TRANSFORM)return;
+        if(a.health<=0 || a.cinematic() || a.move==Move.TRANSFORM)return;
         a.health=Math.max(0,a.health-amount);
         level.sendParticles(ParticleTypes.DAMAGE_INDICATOR,part.getX(),part.getY()+2,part.getZ(),5,.6,.3,.6,.1);
         if(a.health==0) {
@@ -137,17 +153,24 @@ public final class Encounters {
             voice(a,"At last, the tide is quiet.");
             g.spawnAtLocation(new ItemStack(Items.NETHER_STAR).setHoverName(Component.literal("Star of the World Serpent")));
         }
-        g.playSound(SoundEvents.ENDER_DRAGON_DEATH,.8f,.65f);
-        a.bar.removeAllPlayers();
-        for(Giant part:a.active.values())part.discard();
-        a.active.clear(); BeastState data=BeastState.get(level); data.animals.remove(a.id); data.setDirty();
+        a.deathLift=a.lift(); a.move=Move.DEATH; a.remaining=Animal.DEATH_TICKS; a.target=null;
+        a.bar.setProgress(0); a.active.values().forEach(Giant::sync);
+        BeastState.get(level).setDirty();
+    }
+    private static void sceneSound(Animal a) {
+        var sound=a.move==Move.DEATH?(a.levi?SoundEvents.GUARDIAN_DEATH:SoundEvents.ENDER_DRAGON_DEATH)
+            :(a.levi?SoundEvents.ELDER_GUARDIAN_AMBIENT:SoundEvents.WARDEN_EMERGE);
+        for(ServerPlayer p:a.bar.getPlayers())
+            p.playNotifySound(sound,SoundSource.HOSTILE,.85f,a.levi?.62f:.78f);
     }
     private static void fight(ServerLevel level,Animal a) {
         if(a.remaining>0) {
             if(--a.remaining==0) {
                 Giant g=a.active.get(a.striker);
                 Player p=a.target==null?null:level.getPlayerByUUID(a.target);
-                if(g!=null && p!=null && valid(p))strike(level,a,g,p);
+                if(g!=null && a.move==Move.SCREECH)screech(level,g);
+                else if(g!=null && p!=null && valid(p))strike(level,a,g,p);
+                if(a.levi)a.recoil=a.lungeReach();
                 a.move=Move.REST; a.cooldown=30; a.target=null;
             }
             return;
@@ -161,7 +184,7 @@ public final class Encounters {
         if(g==null || g.getBoundingBox().distanceToSqr(p.getEyePosition())>40*40){a.cooldown=10;return;}
         List<Move> choices=new ArrayList<>();
         if(a.levi) {
-            if(g.head())Collections.addAll(choices,Move.BITE,Move.CHARGE);
+            if(g.head())Collections.addAll(choices,Move.BITE,Move.CHARGE,Move.SCREECH);
             else choices.add(Move.GRAB);
         } else {
             Collections.addAll(choices,Move.BLAST,Move.SLASH);
@@ -173,7 +196,7 @@ public final class Encounters {
         if(choice==Move.MYSTERY) {
             voice(a,"Guess my next breath."); choices.remove(Move.MYSTERY); choice=choices.get(level.random.nextInt(choices.size()));
         }
-        a.move=choice; a.striker=g.section; a.target=p.getUUID(); a.remaining=20;
+        a.move=choice; a.striker=g.section; a.target=p.getUUID(); a.remaining=choice==Move.SCREECH?34:a.levi?24:20;
         if(!a.levi)voice(a,switch(choice) {
             case BLAST -> "Stand against my breath."; case BITE -> "Into the dark."; case SPIKE -> "Teeth of the deep.";
             case STONE -> "Catch the mountain."; case FIRE -> "Burn."; case POISON -> "Breathe deeply.";
@@ -190,6 +213,7 @@ public final class Encounters {
             case BITE -> {
                 if(distance<=64 && p.hurt(g.damageSources().mobAttack(g),a.levi?6:8) && !a.levi && p instanceof ServerPlayer sp && p.isAlive())Stomach.swallow(sp,a.id);
             }
+            case SCREECH -> screech(level,g);
             case GRAB -> { if(distance<=100) { p.hurt(g.damageSources().mobAttack(g),4); p.push(-dir.x*1.1,.1,-dir.z*1.1); p.hurtMarked=true;
                 p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,30,3)); } }
             case CHARGE, SLASH -> { if(distance<=100) { p.hurt(g.damageSources().mobAttack(g),a.levi?6:8); p.push(dir.x,.45,dir.z);p.hurtMarked=true; } }
@@ -198,6 +222,16 @@ public final class Encounters {
             case POISON -> { if(distance<24*24)p.addEffect(new MobEffectInstance(Beasts.VENOM.get(),400)); }
             case FIRE, SPIKE, STONE -> BeastShot.launch(level,g,p,a.move);
             default -> {}
+        }
+    }
+    static void screech(ServerLevel level,Giant g) {
+        g.playSound(Beasts.SCREECH.get(),3,1);
+        level.sendParticles(ParticleTypes.SONIC_BOOM,g.getX(),g.getY()+13,g.getZ()-22,1,0,0,0,0);
+        for(Player listener:level.getEntitiesOfClass(Player.class,g.getBoundingBox().inflate(28),Encounters::valid)) {
+            if(g.getBoundingBox().distanceToSqr(listener.getEyePosition())>28*28)continue;
+            listener.stopUsingItem();listener.setSprinting(false);
+            listener.setDeltaMovement(Vec3.ZERO);listener.hurtMarked=true;
+            listener.addEffect(new MobEffectInstance(Beasts.STUN.get(),40));
         }
     }
     static void announce(Player p,String s){ p.sendSystemMessage(Component.literal(s)); }

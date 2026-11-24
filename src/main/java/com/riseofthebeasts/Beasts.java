@@ -29,14 +29,18 @@ public class Beasts {
     static final RegistryObject<EntityType<BeastShot>> SHOT = ENTITIES.register("beast_shot", () ->
         EntityType.Builder.<BeastShot>of(BeastShot::new, MobCategory.MISC).sized(.45f, .45f).clientTrackingRange(8).updateInterval(1).build("beast_shot"));
     static final RegistryObject<Cavern> CAVERN = FEATURES.register("abyss", () -> new Cavern(NoneFeatureConfiguration.CODEC));
+    static final DeferredRegister<net.minecraft.sounds.SoundEvent> SOUNDS=DeferredRegister.create(ForgeRegistries.SOUND_EVENTS,ID);
+    static final RegistryObject<net.minecraft.sounds.SoundEvent> SCREECH=SOUNDS.register("leviathan_screech",
+        ()->net.minecraft.sounds.SoundEvent.createVariableRangeEvent(id("leviathan_screech")));
+    static final RegistryObject<MobEffect> STUN=EFFECTS.register("stunned",ScreechStun::new);
     static final RegistryObject<MobEffect> VENOM = EFFECTS.register("serpent_venom", Venom::new);
     static final RegistryObject<Item> SOUNDING = ITEMS.register("sounding_shell", () -> new SoundingShell(new Item.Properties().stacksTo(1)));
     static final RegistryObject<Item> WIND_EGG = egg("windegow", WIND, 0x563627, 0xd5cab0);
-    static final RegistryObject<Item> LEVI_EGG = egg("leviathan", LEVI, 0x174451, 0xc5aba0);
+    static final RegistryObject<Item> LEVI_EGG = egg("leviathan", LEVI, 0x182e58, 0xf08b36);
     static final RegistryObject<Item> SERPENT_EGG = egg("jormungandr", SERPENT, 0x403948, 0xd76626);
     private static RegistryObject<EntityType<Giant>> giant(String id) {
         return ENTITIES.register(id, () -> EntityType.Builder.<Giant>of(Giant::new, MobCategory.CREATURE)
-            .sized(9, 7).clientTrackingRange(8).updateInterval(2).build(id));
+            .sized(9, 7).clientTrackingRange(16).updateInterval(2).build(id));
     }
     private static RegistryObject<Item> egg(String id, RegistryObject<? extends EntityType<? extends Mob>> type, int base, int spots) {
         return ITEMS.register(id+"_spawn_egg", () -> new ForgeSpawnEggItem(type, base, spots, new Item.Properties()));
@@ -44,10 +48,10 @@ public class Beasts {
     static ResourceLocation id(String name) { return new ResourceLocation(ID, name); }
     public Beasts() {
         var bus = FMLJavaModLoadingContext.get().getModEventBus();
-        ENTITIES.register(bus); ITEMS.register(bus); FEATURES.register(bus); EFFECTS.register(bus);
+        ENTITIES.register(bus); ITEMS.register(bus); FEATURES.register(bus); EFFECTS.register(bus); SOUNDS.register(bus);
         bus.addListener(this::attributes); bus.addListener(this::tabs); bus.addListener(this::placements);
         MinecraftForge.EVENT_BUS.register(Encounters.class);
-        MinecraftForge.EVENT_BUS.register(Stomach.class);
+        MinecraftForge.EVENT_BUS.register(Stomach.class); MinecraftForge.EVENT_BUS.register(ScreechStun.class);
     }
     private void attributes(EntityAttributeCreationEvent event) {
         event.put(WIND.get(), Windegow.attributes().build());

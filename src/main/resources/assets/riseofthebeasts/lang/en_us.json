@@ -7,5 +7,13 @@
   "item.riseofthebeasts.jormungandr_spawn_egg": "Jormungandr Spawn Egg",
   "item.riseofthebeasts.sounding_shell": "Sounding Shell",
   "effect.riseofthebeasts.serpent_venom": "Serpent Venom",
-  "entity.riseofthebeasts.beast_shot": "Serpent Projectile"
+  "entity.riseofthebeasts.beast_shot": "Serpent Projectile",
+  "boss.riseofthebeasts.jormungandr": "Jormungandr",
+  "subtitle.riseofthebeasts.world_serpent": "The World Serpent",
+  "effect.riseofthebeasts.stunned": "Stunned",
+  "subtitles.riseofthebeasts.screech": "Leviathan screeches",
+  "scene.riseofthebeasts.leviathan.intro": "Leviathan awakens",
+  "scene.riseofthebeasts.leviathan.death": "Leviathan sinks into the deep",
+  "scene.riseofthebeasts.serpent.intro": "Jormungandr rises from the sea",
+  "scene.riseofthebeasts.serpent.death": "The World Serpent falls"
 }
