@@ -2,7 +2,7 @@
 
 A standalone mod for Minecraft Java Edition **1.20.1**, Forge **47.4.10** and Java **17**. Download the [installable JAR](dist/rise-of-the-beasts-1.0.0.jar) and put it in the Forge profile’s `mods` folder. For multiplayer, install the same JAR on the server and each client. Explore new Overworld terrain for natural caverns.
 
-Watch the [narrated playthrough](Rise-of-the-Beasts-1.0.0-Playthrough.mp4) for a first-person tour of all three encounters, the stomach escape, and the final reward. The 1:41 video includes English captions and chapter markers. Encounters are staged and boss health is advanced for the recording.
+Watch the [narrated playthrough](Rise-of-the-Beasts-1.0.0-Playthrough.mp4) for a first-person tour of all three encounters, the stomach escape, and the final reward. The 1:41 video features an AI-generated English voiceover, matching captions, and eight chapter markers. Encounters are staged and boss health is advanced for the recording.
 
 ### Windegow
 
