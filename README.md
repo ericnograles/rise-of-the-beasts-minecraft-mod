@@ -1,20 +1,14 @@
 # Rise of the Beasts
 
-A standalone mod for Minecraft Java Edition **1.20.1**, Forge **47.4.10** and Java **17**. Download the [installable JAR](dist/rise-of-the-beasts-1.1.0.jar) and put it in the Forge profile’s `mods` folder. For multiplayer, install the same JAR on the server and each client. Explore new Overworld terrain for natural caverns.
+A standalone mod for Minecraft Java Edition **1.20.1**, Forge **47.4.10** and Java **17**. Download the [installable JAR](dist/rise-of-the-beasts-1.2.0.jar) and put it in the Forge profile’s `mods` folder. For multiplayer, install the same JAR on the server and each client. Explore new Overworld terrain for natural caverns.
 
-Watch the [1.1 narrated playthrough](Rise-of-the-Beasts-1.1.0-Playthrough.mp4) for a 1:33 tour with an AI-generated English voiceover, optional captions, and 11 chapters. The new boss footage was recorded in Minecraft. The encounters are staged and boss health is advanced to show both phases and the endings.
+Watch the [1.2 Kraken walkthrough](Rise-of-the-Beasts-1.2.0-Walkthrough.mp4) for the Creative eggs, Survival ritual, tentacle sweep, ink attack, and whirlpool finale. The 1:12 video includes narration from AI Voice Generator, English captions, and eight chapters. Jump to 0:23 for the scale comparison or 1:02 for the whirlpool finale. The encounters are staged and boss health is advanced for the finale. The [1.1 tour of the original three encounters](Rise-of-the-Beasts-1.1.0-Playthrough.mp4) and the [1.0 playthrough](Rise-of-the-Beasts-1.0.0-Playthrough.mp4) are also available.
 
-| Time | In the playthrough |
-| --- | --- |
-| 0:00 | Windegow in the forest, followed by the descent through the lantern shaft |
-| 0:24 | Leviathan awakens and spreads the eight arms attached to his head |
-| 0:40 | The jaws open before the screech. Listen for the call and watch the two-second stun |
-| 0:48 | Leviathan’s arms fold inward as he sinks |
-| 0:54 | Jormungandr rises. The wide shot shows his full 200-block height, followed by the view from the waterline |
-| 1:09 | The stomach escape and the shift to the second health bar |
-| 1:23 | The World Serpent’s final descent and the victory drop |
+### Kraken
 
-The [original 1.0 playthrough](Rise-of-the-Beasts-1.0.0-Playthrough.mp4) is also available.
+Crouch at the surface of an Overworld ocean and use a **nautilus shell**. One shell summons the Kraken. Its face breaks the surface to the north. The pointed mantle and kite-shaped fins extend **480 blocks** behind the face. Eight independently moving arms extend south. The two long feeding tentacles reach **620 blocks**, giving the animal a total length of **1,100 blocks**. Its mantle is **200 blocks tall** at the thickest point. The client draws the full silhouette when a nearby section is outside simulation distance. The server only simulates physical sections in ticking chunks.
+
+The curled-tentacle health bar tracks **1,200 HP** shared by the mantle and arms. An arm winds up and sweeps for **10 damage** with knockback. Near the mantle or face, an ink burst deals **5 damage** and blinds the target for three seconds. Strike a nearby section, then move clear before its attack lands. The killing blow drops one **Heart of the Sea** at the section you hit. The arms twist inward and the Kraken sinks beneath a spinning whirlpool. The whirlpool leaves the terrain intact.
 
 ### Windegow
 
@@ -41,18 +35,19 @@ The ocean ritual, second health pool, stomach valve and victory drop are gamepla
 
 ### Quick checks
 
-Use the three spawn eggs in Creative, or run these commands separately in a test world. Switch to Survival for attacks.
+Open **Creative inventory → Spawn Eggs** for the Windegow, Leviathan, Jormungandr, and Kraken eggs. Use an egg on a block or a water source, or run these commands separately in a test world. Switch to Survival for attacks.
 
 ```mcfunction
 /time set midnight
 /summon riseofthebeasts:windegow ~ ~ ~6
 /summon riseofthebeasts:leviathan ~ ~ ~16
 /summon riseofthebeasts:jormungandr ~ ~ ~16
+/summon riseofthebeasts:kraken ~ ~ ~16
 ```
 
 Try Leviathan in a shallow pool, drain the water around its head, then refill before a minute passes. To inspect the serpent’s transformation quickly, use `/kill @e[type=riseofthebeasts:jormungandr,sort=nearest,limit=1]`, wait for the flame cue to finish, and repeat for final defeat.
 
-Giant bodies follow gently undulating paths through their encounter sites. Summon them in open space to see the silhouette. The server materializes nearby sections in already-ticking chunks, up to 112 blocks from a player for Leviathan and 246 for Jormungandr. Actual visibility also depends on simulation and render distance. Each boss has a five-second introduction and a four-and-a-half-second death sequence. The camera returns to the player’s view afterward. The saved encounter owns health, phase, position, stranded time and pending attacks. Sections can unload and reform when a player travels along the body. The land timer advances while the jaw is active.
+Giant bodies follow gently undulating paths through their encounter sites. Summon them in open space to see the silhouette. The server materializes nearby sections in already-ticking chunks, up to 112 blocks from a player for Leviathan and about 245 for the Kraken and Jormungandr. Actual visibility also depends on simulation and render distance. Each giant has a five-second introduction and a four-and-a-half-second death sequence. The camera returns to the player’s view afterward. The saved encounter owns health, phase, position, stranded time and pending attacks. Sections can unload and reform when a player travels along the body. The land timer advances while the jaw is active.
 
 ### Build and test
 
@@ -64,4 +59,4 @@ The wrapper pins Gradle **8.8**. ForgeGradle **6.0.54** uses official **1.20.1**
 ./gradlew runServer
 ```
 
-The build reobfuscates the installable JAR. The GameTests cover the serpent’s height, both defeats, stomach escape and the final reward. They also check Leviathan’s arm attachment points, charge reach, screech range and stun recovery, water and stranding, and the Windegow’s movement and scratch rules. The dedicated development server uses `run-server/` and requires the server owner’s Minecraft EULA acceptance.
+The build reobfuscates the installable JAR. The Kraken GameTest checks egg spawning, scale, arm motion, 1.1 save migration, and the whirlpool reward and cleanup. The GameTests cover the serpent’s height, both defeats, stomach escape and the final reward. They also check Leviathan’s arm attachment points, charge reach, screech range and stun recovery, water and stranding, and the Windegow’s movement and scratch rules. The dedicated development server uses `run-server/` and requires the server owner’s Minecraft EULA acceptance.

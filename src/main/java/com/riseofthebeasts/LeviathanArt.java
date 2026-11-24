@@ -7,7 +7,7 @@ import net.minecraft.util.Mth;
 import static com.riseofthebeasts.BeastState.Move;
 
 /** Elliptical cross-sections give the mantle, eyes, teeth and arms distinct silhouettes. */
-record Kraken(PoseStack pose, VertexConsumer out, int light) {
+record LeviathanArt(PoseStack pose, VertexConsumer out, int light) {
     private static final int SIDES=12;
     private static final int SKIN=0, FLANK=1, CUP=2, GUM=3, IVORY=4, TIP=5, PUPIL=6, BELLY=7, IRIS=8, RIM=9, SOCKET=10;
     private void vertex(int tile,double x,double y,double z,float u,float v,double nx,double ny,double nz){

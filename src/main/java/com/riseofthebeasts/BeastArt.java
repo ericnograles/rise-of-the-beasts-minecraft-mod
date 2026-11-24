@@ -20,6 +20,7 @@ import static com.riseofthebeasts.BeastState.Move;
 public final class BeastArt {
     @SubscribeEvent public static void renderers(EntityRenderersEvent.RegisterRenderers e) {
         e.registerEntityRenderer(Beasts.WIND.get(),Painter::new);e.registerEntityRenderer(Beasts.LEVI.get(),Painter::new);
+        e.registerEntityRenderer(Beasts.KRAKEN.get(),Painter::new);
         e.registerEntityRenderer(Beasts.SERPENT.get(),Painter::new);e.registerEntityRenderer(Beasts.SHOT.get(),ShotRenderer::new);
     }
     private static class ShotRenderer extends ThrownItemRenderer<BeastShot> {
@@ -33,7 +34,7 @@ public final class BeastArt {
         }
     }
     private static class Painter<T extends Entity> extends EntityRenderer<T> {
-        static final ResourceLocation WIND=Beasts.id("textures/entity/windegow.png"), LEVI=Beasts.id("textures/entity/leviathan.png"), SERPENT=Beasts.id("textures/entity/jormungandr.png");
+        static final ResourceLocation WIND=Beasts.id("textures/entity/windegow.png"), KRAKEN=Beasts.id("textures/entity/kraken.png"), LEVI=Beasts.id("textures/entity/leviathan.png"), SERPENT=Beasts.id("textures/entity/jormungandr.png");
         final ModelPart[] materials=new ModelPart[12];
         Painter(EntityRendererProvider.Context ctx) {
             super(ctx);
@@ -43,7 +44,11 @@ public final class BeastArt {
             var root=LayerDefinition.create(mesh,128,128).bakeRoot();
             for(int i=0;i<materials.length;i++)materials[i]=root.getChild("m"+i);
         }
-        @Override public ResourceLocation getTextureLocation(T e){return e instanceof Windegow?WIND:((Giant)e).levi()?LEVI:SERPENT;}
+        @Override public boolean shouldRender(T entity,net.minecraft.client.renderer.culling.Frustum frustum,double x,double y,double z){
+            if(entity instanceof Giant g && g.kraken())return false; // KrakenDisplay draws the complete animal.
+            return super.shouldRender(entity,frustum,x,y,z);
+        }
+        @Override public ResourceLocation getTextureLocation(T e){return e instanceof Windegow?WIND:((Giant)e).kraken()?KRAKEN:((Giant)e).levi()?LEVI:SERPENT;}
         @Override public void render(T e,float yaw,float partial,PoseStack pose,MultiBufferSource buffers,int light){
             var brush=new Brush(pose,buffers.getBuffer(RenderType.entityCutoutNoCull(getTextureLocation(e))),materials,light);
             pose.pushPose();
@@ -107,7 +112,7 @@ public final class BeastArt {
             double t=g.tickCount+partial+index*2;
             int left=g.getEntityData().get(Giant.REMAINING);
             if(g.levi()) {
-                new Kraken(p,vertices,light).draw(g,move,left-partial,t);
+                new LeviathanArt(p,vertices,light).draw(g,move,left-partial,t);
                 return;
             }
             double action=move==Move.REST?0:Math.sin(t*.35);

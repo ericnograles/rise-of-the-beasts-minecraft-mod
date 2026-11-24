@@ -15,5 +15,10 @@
   "scene.riseofthebeasts.leviathan.intro": "Leviathan awakens",
   "scene.riseofthebeasts.leviathan.death": "Leviathan sinks into the deep",
   "scene.riseofthebeasts.serpent.intro": "Jormungandr rises from the sea",
-  "scene.riseofthebeasts.serpent.death": "The World Serpent falls"
+  "scene.riseofthebeasts.serpent.death": "The World Serpent falls",
+  "entity.riseofthebeasts.kraken": "Kraken",
+  "item.riseofthebeasts.kraken_spawn_egg": "Kraken Spawn Egg",
+  "boss.riseofthebeasts.kraken": "Kraken",
+  "scene.riseofthebeasts.kraken.intro": "The Kraken breaks the surface",
+  "scene.riseofthebeasts.kraken.death": "The sea draws the Kraken under"
 }
