@@ -3,9 +3,9 @@ loaderVersion="[47,48)"
 license="All rights reserved"
 [[mods]]
 modId="riseofthebeasts"
-version="1.1.0"
+version="1.2.0"
 displayName="Rise of the Beasts"
-description="Three encounters from the forest floor to the deep ocean."
+description="Four encounters from the forest floor to the deep ocean."
 [[dependencies.riseofthebeasts]]
 modId="forge"
 mandatory=true

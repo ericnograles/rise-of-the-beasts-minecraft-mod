@@ -24,6 +24,7 @@ public class Beasts {
     static final DeferredRegister<MobEffect> EFFECTS = DeferredRegister.create(ForgeRegistries.MOB_EFFECTS, ID);
     static final RegistryObject<EntityType<Windegow>> WIND = ENTITIES.register("windegow", () ->
         EntityType.Builder.of(Windegow::new, MobCategory.MONSTER).sized(1.3f, 4.4f).clientTrackingRange(8).build("windegow"));
+    static final RegistryObject<EntityType<Giant>> KRAKEN = giant("kraken");
     static final RegistryObject<EntityType<Giant>> LEVI = giant("leviathan");
     static final RegistryObject<EntityType<Giant>> SERPENT = giant("jormungandr");
     static final RegistryObject<EntityType<BeastShot>> SHOT = ENTITIES.register("beast_shot", () ->
@@ -35,6 +36,7 @@ public class Beasts {
     static final RegistryObject<MobEffect> STUN=EFFECTS.register("stunned",ScreechStun::new);
     static final RegistryObject<MobEffect> VENOM = EFFECTS.register("serpent_venom", Venom::new);
     static final RegistryObject<Item> SOUNDING = ITEMS.register("sounding_shell", () -> new SoundingShell(new Item.Properties().stacksTo(1)));
+    static final RegistryObject<Item> KRAKEN_EGG = egg("kraken", KRAKEN, 0x913e49, 0xf2bd80);
     static final RegistryObject<Item> WIND_EGG = egg("windegow", WIND, 0x563627, 0xd5cab0);
     static final RegistryObject<Item> LEVI_EGG = egg("leviathan", LEVI, 0x182e58, 0xf08b36);
     static final RegistryObject<Item> SERPENT_EGG = egg("jormungandr", SERPENT, 0x403948, 0xd76626);
@@ -47,6 +49,7 @@ public class Beasts {
     }
     static ResourceLocation id(String name) { return new ResourceLocation(ID, name); }
     public Beasts() {
+        KrakenView.register();
         var bus = FMLJavaModLoadingContext.get().getModEventBus();
         ENTITIES.register(bus); ITEMS.register(bus); FEATURES.register(bus); EFFECTS.register(bus); SOUNDS.register(bus);
         bus.addListener(this::attributes); bus.addListener(this::tabs); bus.addListener(this::placements);
@@ -55,7 +58,7 @@ public class Beasts {
     }
     private void attributes(EntityAttributeCreationEvent event) {
         event.put(WIND.get(), Windegow.attributes().build());
-        for (var type : java.util.List.of(LEVI, SERPENT)) event.put(type.get(), Mob.createMobAttributes().build());
+        for (var type : java.util.List.of(LEVI, SERPENT, KRAKEN)) event.put(type.get(), Mob.createMobAttributes().build());
     }
     private void placements(SpawnPlacementRegisterEvent event) {
         event.register(WIND.get(), SpawnPlacements.Type.ON_GROUND, net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
@@ -63,7 +66,7 @@ public class Beasts {
     }
     private void tabs(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS) {
-            event.accept(WIND_EGG); event.accept(LEVI_EGG); event.accept(SERPENT_EGG);
+            event.accept(WIND_EGG); event.accept(LEVI_EGG); event.accept(SERPENT_EGG); event.accept(KRAKEN_EGG);
         }
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) event.accept(SOUNDING);
     }

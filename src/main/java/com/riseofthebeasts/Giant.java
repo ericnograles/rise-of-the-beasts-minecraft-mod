@@ -16,6 +16,8 @@ public class Giant extends PathfinderMob {
     static final EntityDataAccessor<Integer> SPAN = SynchedEntityData.defineId(Giant.class,EntityDataSerializers.INT);
     static final EntityDataAccessor<Integer> TANGENT = SynchedEntityData.defineId(Giant.class,EntityDataSerializers.INT);
     static final EntityDataAccessor<Integer> REMAINING=SynchedEntityData.defineId(Giant.class,EntityDataSerializers.INT);
+    static final EntityDataAccessor<Float> ARM_DX=SynchedEntityData.defineId(Giant.class,EntityDataSerializers.FLOAT);
+    static final EntityDataAccessor<Float> ARM_DY=SynchedEntityData.defineId(Giant.class,EntityDataSerializers.FLOAT);
     Animal animal;
     Section section=new Section(0,0);
     Giant(EntityType<? extends PathfinderMob> type,Level level) {
@@ -24,8 +26,10 @@ public class Giant extends PathfinderMob {
     @Override protected void defineSynchedData() {
         super.defineSynchedData();
         entityData.define(REMAINING,0); entityData.define(TANGENT,0); entityData.define(INDEX,0); entityData.define(PHASE,1); entityData.define(MOVE,0);
+        entityData.define(ARM_DX,0f); entityData.define(ARM_DY,0f);
         entityData.define(WIDTH,10f); entityData.define(SPAN,16);
     }
+    boolean kraken() { return getType()==Beasts.KRAKEN.get(); }
     boolean levi() { return getType()==Beasts.LEVI.get(); }
     float entityDataWidth() { return entityData.get(WIDTH); }
     boolean head() { return entityData.get(INDEX)==0; }
@@ -38,7 +42,7 @@ public class Giant extends PathfinderMob {
     @Override public void tick() {
         super.tick();
         if (level() instanceof ServerLevel level && animal==null && !isRemoved()) {
-            bind(BeastState.get(level).create(levi(),position()),section);
+            bind(BeastState.get(level).create(kraken()?Species.KRAKEN:levi()?Species.LEVIATHAN:Species.SERPENT,position()),section);
         }
         setBoundingBox(box());
     }
@@ -54,7 +58,13 @@ public class Giant extends PathfinderMob {
         entityData.set(MOVE,shown.ordinal());
         entityData.set(REMAINING,shown==Move.REST?0:a.remaining);
         Vec3 center=a.position(section);
-        if(!head()) {
+        if(a.kraken()){
+            if(section.index()>0){
+                Vec3 axis=KrakenBody.axis(a,section);
+                entityData.set(ARM_DX,(float)axis.x);entityData.set(ARM_DY,(float)axis.y);
+                entityData.set(SPAN,KrakenBody.span(section));
+            }
+        } else if(!head()) {
             double start=section.index()*16-8;
             Vec3 front=a.point(start,section.lane()),back=a.point(start+a.span(section.index()),section.lane());
             Vec3 axis=back.subtract(front);
@@ -67,6 +77,7 @@ public class Giant extends PathfinderMob {
     }
     private AABB box() {
         double w=entityDataWidth();
+        if(kraken())return KrakenBody.bounds(this);
         if(head()) {
             return new AABB(getX()-w*.53,getY()-(levi()?5:0),getZ()-(levi()?31:26),
                             getX()+w*.53,getY()+(levi()?33:Animal.CROWN),getZ()+(levi()?23:25));
