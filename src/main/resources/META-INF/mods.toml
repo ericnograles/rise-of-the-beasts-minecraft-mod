@@ -1,0 +1,20 @@
+modLoader="javafml"
+loaderVersion="[47,48)"
+license="All rights reserved"
+[[mods]]
+modId="riseofthebeasts"
+version="1.0.0"
+displayName="Rise of the Beasts"
+description="Three encounters from the forest floor to the deep ocean."
+[[dependencies.riseofthebeasts]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.10,48)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.riseofthebeasts]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"
