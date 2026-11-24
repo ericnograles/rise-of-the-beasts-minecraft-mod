@@ -3,7 +3,7 @@ plugins {
     id 'net.minecraftforge.gradle' version '6.0.54'
 }
 group = 'com.riseofthebeasts'
-version = '1.0.0'
+version = '1.1.0'
 base { archivesName = 'rise-of-the-beasts' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 minecraft {

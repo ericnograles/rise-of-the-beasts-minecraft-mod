@@ -45,7 +45,7 @@ public final class BeastArt {
         }
         @Override public ResourceLocation getTextureLocation(T e){return e instanceof Windegow?WIND:((Giant)e).levi()?LEVI:SERPENT;}
         @Override public void render(T e,float yaw,float partial,PoseStack pose,MultiBufferSource buffers,int light){
-            var brush=new Brush(pose,buffers.getBuffer(RenderType.entityCutout(getTextureLocation(e))),materials,light);
+            var brush=new Brush(pose,buffers.getBuffer(RenderType.entityCutoutNoCull(getTextureLocation(e))),materials,light);
             pose.pushPose();
             if(e instanceof Windegow w){
                 pose.mulPose(Axis.YP.rotationDegrees(-Mth.rotLerp(partial,w.yBodyRotO,w.yBodyRot)+180));
@@ -105,19 +105,29 @@ public final class BeastArt {
             int index=g.getEntityData().get(Giant.INDEX);boolean hot=g.getEntityData().get(Giant.PHASE)==2;
             Move move=Move.values()[g.getEntityData().get(Giant.MOVE)];
             double t=g.tickCount+partial+index*2;
-            double wave=Math.sin(t*.11), action=move==Move.REST?0:Math.sin(t*.35);
+            int left=g.getEntityData().get(Giant.REMAINING);
+            if(g.levi()) {
+                new Kraken(p,vertices,light).draw(g,move,left-partial,t);
+                return;
+            }
+            double action=move==Move.REST?0:Math.sin(t*.35);
             if(index==0){
-                boolean levi=g.levi();
-                double open=(levi?.42:.13)+Math.sin(t*.07)*.05;
+                p.scale(3,3,3);width=11;
+                // The crown tip is 12 model blocks above the jaw base (36 in world space).
+                for(int side:new int[]{-1,1}){
+                    box(hot?9:7,side*2,8.1,3.8,1.8,4.2,2.2,.24,-side*.2);
+                    box(hot?9:7,side*2.6,10.7,4.4,1.15,2.0,1.2);
+                    box(hot?8:5,side*2.65,11.8,4.4,.55,.4,.66);
+                }
+                double open=.13+Math.sin(t*.07)*.05;
+                if(move==Move.INTRO)open+=.46*Math.sin(Math.PI*(1-left/100.));
+                if(move==Move.DEATH)open+=.33*left/90.;
                 if(move==Move.BITE || move==Move.FIRE || move==Move.SPIKE)open+=.26+.19*action;
                 p.translate(0,width*.37,0);
-                if(move==Move.CHARGE)p.mulPose(Axis.XP.rotation((float)(action*.13)));
                 box(0,0,0,3,width*.88,width*.53,9);
-                if(!levi){
-                    box(2,0,2.9,-.8,width*.79,1.35,7.2,-.12,0);
-                    box(7,0,3.8,.4,width*.42,.8,5.2,-.18,0);
-                    for(int i=0;i<4;i++)box(hot?8:7,0,4+i*.30,1.4+i*.93,1.6-i*.2,1.7,1.4,.55,0);
-                }
+                box(2,0,2.9,-.8,width*.79,1.35,7.2,-.12,0);
+                box(7,0,3.8,.4,width*.42,.8,5.2,-.18,0);
+                for(int i=0;i<4;i++)box(hot?8:7,0,4+i*.30,1.4+i*.93,1.6-i*.2,1.7,1.4,.55,0);
                 for(int s:new int[]{-1,1}){
                     p.pushPose();p.translate(0,s*.5,1);p.mulPose(Axis.XP.rotation((float)(s*open)));
                     box(s==1?0:1,0,s*.48,-3.6,width*.84,1.8,9);
@@ -131,7 +141,7 @@ public final class BeastArt {
                     box(2,s*width*.46,1.3,-1.1,.78,1.55,2.2,-.22,0);
                     box(8,s*width*.50,1.24,-1.35,.16,.66,1.1);
                     box(6,s*width*.51,1.25,-1.44,.11,.62,.23);
-                    if(!levi)for(int k=0;k<4;k++){
+                    for(int k=0;k<4;k++){
                         box(hot?9:7,s*(4.1+k*.32),2.1+k*.21,1.4+k*.92,1.15,2.8,2,-.60,-s*.47);
                         box(hot?8:5,s*(4.66+k*.32),3.45+k*.21,2+k*.92,.60,.95,1.05,-.65,-s*.55);
                     }
@@ -140,33 +150,20 @@ public final class BeastArt {
             }
             p.mulPose(Axis.YP.rotationDegrees(g.yawDegrees()));
             p.mulPose(Axis.XP.rotationDegrees(g.pitchDegrees()));
-            span/=Math.max(.75,Math.cos(Math.toRadians(g.yawDegrees()))*Math.cos(Math.toRadians(g.pitchDegrees())));
-            if(g.levi()){
-                double curl=move==Move.GRAB?(.15*action):.025*wave;
-                p.mulPose(Axis.XP.rotation((float)curl));
-                box(0,0,width*.33,0,width,width*.67,span+.45);
-                for(int k=0;k<3;k++){
-                    double z=(k-1)*span*.31;
-                    box(2,0,width*.67,z,width*.60,.22,span*.20);
-                    box(2,0,width*.67,z,width*.79,.22,span*.12);
-                    box(3,0,width*.68+.08,z,width*.43,.18,span*.10);
-                    for(int s:new int[]{-1,1})box(2,s*width*.50,width*.33,z+.35,.13,width*.35,span*.12);
+            span/=Math.max(.15,Math.cos(Math.toRadians(g.yawDegrees()))*Math.cos(Math.toRadians(g.pitchDegrees())));
+            if(move==Move.SLASH || move==Move.STONE)p.mulPose(Axis.ZP.rotation((float)(action*.16)));
+            box(1,0,width*.27,0,width*.86,width*.55,span+.45);
+            for(int k=0;k<2;k++){
+                double z=(k-.5)*span*.5;
+                box(0,0,width*.37,z,width,width*.57,span*.46,-.035,0);
+                for(int s:new int[]{-1,1}) {
+                    box(2,s*width*.46,width*.32,z+.5,width*.13,width*.37,span*.37,0,-s*.18);
+                    if(hot)box(8,s*width*.512,width*.38,z,.17,width*.09,span*.54);
                 }
-            } else {
-                if(move==Move.SLASH || move==Move.STONE)p.mulPose(Axis.ZP.rotation((float)(action*.16)));
-                box(1,0,width*.27,0,width*.86,width*.55,span+.45);
-                for(int k=0;k<2;k++){
-                    double z=(k-.5)*span*.5;
-                    box(0,0,width*.37,z,width,width*.57,span*.46,-.035,0);
-                    for(int s:new int[]{-1,1}) {
-                        box(2,s*width*.46,width*.32,z+.5,width*.13,width*.37,span*.37,0,-s*.18);
-                        if(hot)box(8,s*width*.512,width*.38,z,.17,width*.09,span*.54);
-                    }
-                    if(hot || index%4==0) {
-                        double h=width*(hot?.62:.21);
-                        box(hot?9:2,0,width*.63+h*.38,z,width*.13,h*.84,span*.14,.41,0);
-                        box(hot?9:2,0,width*.63+h*.88,z+h*.24,width*.075,h*.38,span*.075,.54,0);
-                    }
+                if(hot || index%4==0) {
+                    double h=width*(hot?.62:.21);
+                    box(hot?9:2,0,width*.63+h*.38,z,width*.13,h*.84,span*.14,.41,0);
+                    box(hot?9:2,0,width*.63+h*.88,z+h*.24,width*.075,h*.38,span*.075,.54,0);
                 }
             }
         }

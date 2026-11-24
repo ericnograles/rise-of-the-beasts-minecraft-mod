@@ -15,6 +15,7 @@ public class Giant extends PathfinderMob {
     static final EntityDataAccessor<Float> WIDTH = SynchedEntityData.defineId(Giant.class,EntityDataSerializers.FLOAT);
     static final EntityDataAccessor<Integer> SPAN = SynchedEntityData.defineId(Giant.class,EntityDataSerializers.INT);
     static final EntityDataAccessor<Integer> TANGENT = SynchedEntityData.defineId(Giant.class,EntityDataSerializers.INT);
+    static final EntityDataAccessor<Integer> REMAINING=SynchedEntityData.defineId(Giant.class,EntityDataSerializers.INT);
     Animal animal;
     Section section=new Section(0,0);
     Giant(EntityType<? extends PathfinderMob> type,Level level) {
@@ -22,7 +23,7 @@ public class Giant extends PathfinderMob {
     }
     @Override protected void defineSynchedData() {
         super.defineSynchedData();
-        entityData.define(TANGENT,0); entityData.define(INDEX,0); entityData.define(PHASE,1); entityData.define(MOVE,0);
+        entityData.define(REMAINING,0); entityData.define(TANGENT,0); entityData.define(INDEX,0); entityData.define(PHASE,1); entityData.define(MOVE,0);
         entityData.define(WIDTH,10f); entityData.define(SPAN,16);
     }
     boolean levi() { return getType()==Beasts.LEVI.get(); }
@@ -49,7 +50,9 @@ public class Giant extends PathfinderMob {
         var a=animal;
         entityData.set(WIDTH,(float)a.width(section)); entityData.set(SPAN,a.span(section.index()));
         entityData.set(PHASE,a.phase);
-        entityData.set(MOVE,(section.equals(a.striker) || a.move==Move.TRANSFORM || a.move==Move.BURST ? a.move:Move.REST).ordinal());
+        Move shown=a.cinematic() || section.equals(a.striker) || a.move==Move.TRANSFORM || a.move==Move.BURST ? a.move:Move.REST;
+        entityData.set(MOVE,shown.ordinal());
+        entityData.set(REMAINING,shown==Move.REST?0:a.remaining);
         Vec3 center=a.position(section);
         if(!head()) {
             double start=section.index()*16-8;
@@ -63,16 +66,25 @@ public class Giant extends PathfinderMob {
         setPos(center); setBoundingBox(box());
     }
     private AABB box() {
-        double w=entityData.get(WIDTH), halfLength=entityData.get(SPAN)*.5;
-        double halfWidth=w*.5+Math.abs(Math.sin(Math.toRadians(yawDegrees())))*halfLength;
-        return new AABB(getX()-halfWidth,getY(),getZ()-halfLength,getX()+halfWidth,getY()+w*(head()?.82:.65),getZ()+halfLength);
+        double w=entityDataWidth();
+        if(head()) {
+            return new AABB(getX()-w*.53,getY()-(levi()?5:0),getZ()-(levi()?31:26),
+                            getX()+w*.53,getY()+(levi()?33:Animal.CROWN),getZ()+(levi()?23:25));
+        }
+        double dz=entityData.get(SPAN)*.5;
+        double dx=dz*Math.abs(Math.tan(Math.toRadians(yawDegrees())));
+        double dy=Math.hypot(dx,dz)*Math.abs(Math.tan(Math.toRadians(pitchDegrees())));
+        return new AABB(getX()-dx-w*.52,getY()-dy-w*.1,getZ()-dz-1,
+                        getX()+dx+w*.52,getY()+dy+w*(levi()?.9:1.2),getZ()+dz+1);
     }
+    @Override public boolean shouldRenderAtSqrDistance(double distance) {return distance<320*320;}
     int yawDegrees(){return (byte)(int)entityData.get(TANGENT);}
     int pitchDegrees(){return (byte)(entityData.get(TANGENT)>>8);}
     @Override public AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(3); }
     @Override public boolean hurt(DamageSource source,float amount) {
         if (!(level() instanceof ServerLevel level) || animal==null || amount<=0 || animal.health<=0 ||
             isInvulnerableTo(source) || (source.getEntity()==null && !source.is(net.minecraft.world.damagesource.DamageTypes.GENERIC_KILL))) return false;
+        if (animal.cinematic() || animal.move==Move.TRANSFORM)return false;
         if (animal.guard>0 && !source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_COOLDOWN)) return false;
         animal.guard=5; Encounters.damage(level,this,amount); return true;
     }

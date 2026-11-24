@@ -27,7 +27,7 @@ public final class EncounterTests {
         h.assertTrue(w.scratch(runner) && !runner.isAlive(),"Moving runner survived an unblocked scratch");
         h.succeed();
     }
-    @GameTest(template="empty")
+    @GameTest(template="empty",timeoutTicks=120)
     public static void shallowWaterResetsLandTimer(GameTestHelper h){
         var level=h.getLevel();BlockPos pos=h.absolutePos(new BlockPos(3,16,3));
         Giant g=Beasts.LEVI.get().create(level);g.setPos(pos.getCenter());
@@ -40,7 +40,11 @@ public final class EncounterTests {
         level.setBlockAndUpdate(pos,Blocks.AIR.defaultBlockState());
         h.assertTrue(!Encounters.waterAtHead(level,g),"Air counted as water");
         for(int i=0;i<1199;i++)h.assertTrue(!Encounters.stranded(a,false),"Second timer expired early");
-        h.assertTrue(Encounters.tickStranding(level,a) && g.isRemoved() && !BeastState.get(level).animals.containsKey(a.id),"Survived 1200 dry ticks");h.succeed();
+        h.assertTrue(Encounters.tickStranding(level,a) && a.health==0 && a.move==Move.DEATH,"Stranding failed to start final sink");
+        h.runAfterDelay(Animal.DEATH_TICKS+2,()->{
+            h.assertTrue(g.isRemoved() && !BeastState.get(level).animals.containsKey(a.id),"Stranded Leviathan remained active");
+            h.succeed();
+        });
     }
     @GameTest(template="empty")
     public static void projectileShapesAndVenom(GameTestHelper h) {
@@ -62,6 +66,60 @@ public final class EncounterTests {
         }
         h.succeed();
     }
+    @GameTest(template="empty")
+    public static void scaleAndHeadAttachments(GameTestHelper h) {
+        Vec3 origin=new Vec3(0,64,0);
+        Animal serpent=new Animal(java.util.UUID.randomUUID(),false,origin);
+        serpent.clock=Animal.INTRO_TICKS;
+        double top=serpent.position(new Section(0,0)).y+Animal.CROWN;
+        h.assertTrue(Math.abs(top-origin.y-200)<.01,"Standing crown is not 200 blocks tall");
+        serpent.move=Move.INTRO;serpent.remaining=90;
+        h.assertTrue(serpent.position(new Section(0,0)).y<origin.y+20,"Intro should begin near sea level");
+        Animal loaded=Animal.load(serpent.save());
+        h.assertTrue(loaded.move==Move.INTRO && loaded.remaining==90,"Intro restarted after reload");
+        Animal squid=new Animal(java.util.UUID.randomUUID(),true,origin);
+        var roots=new java.util.HashSet<Vec3>();
+        for(int lane=-4;lane<4;lane++){
+            Vec3 root=squid.point(8,lane);
+            h.assertTrue(root.distanceTo(squid.point(0,0).add(0,13,8))<16,"Arm root outside skull");
+            roots.add(root);
+        }
+        h.assertTrue(roots.size()==8,"Overlapping arm sockets");
+        double rest=squid.point(0,0).z;
+        squid.move=Move.CHARGE;squid.remaining=1;
+        h.assertTrue(rest-squid.point(0,0).z>17,"Charge should reach full extension at impact");
+        h.succeed();
+    }
+    @GameTest(template="empty")
+    public static void screechRangeAndRecovery(GameTestHelper h) {
+        var level=h.getLevel();
+        var p=new ServerPlayer(level.getServer(),level,new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(),"EchoTester"));
+        var connection=new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND);
+        var channel=new io.netty.channel.embedded.EmbeddedChannel(connection);
+        level.getServer().getPlayerList().placeNewPlayer(connection,p);
+        try {
+            Vec3 at=h.absolutePos(new BlockPos(3,18,3)).getCenter();
+            var a=new Animal(java.util.UUID.randomUUID(),true,at);
+            var head=Beasts.LEVI.get().create(level);head.bind(a,new Section(0,0));
+            p.teleportTo(level,at.x,at.y+10,at.z-71,0,0);p.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
+            Encounters.screech(level,head);h.assertTrue(!ScreechStun.stunned(p),"Screech reached a distant swimmer");
+            p.teleportTo(level,at.x,at.y+10,at.z-36,0,0);
+            p.setGameMode(net.minecraft.world.level.GameType.CREATIVE);
+            Encounters.screech(level,head);h.assertTrue(!ScreechStun.stunned(p),"Creative observer stunned");
+            p.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
+            Encounters.screech(level,head);
+            var stun=p.getEffect(Beasts.STUN.get());
+            h.assertTrue(stun!=null && stun.getDuration()==40,"Expected a two-second stun");
+            h.assertTrue(p.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED)==0,"Stunned player can walk");
+            var attack=new net.minecraftforge.event.entity.player.AttackEntityEvent(p,head);
+            ScreechStun.attack(attack);h.assertTrue(attack.isCanceled(),"Stunned player can attack");
+            for(int t=0;t<40;t++)p.doTick();
+            h.assertTrue(!ScreechStun.stunned(p) && p.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED)>0,"Stun did not release");
+        } finally {
+            level.getServer().getPlayerList().remove(p);channel.finishAndReleaseAll();
+        }
+        h.succeed();
+    }
     @GameTest(template="empty",timeoutTicks=200)
     public static void stomachAndBothDefeats(GameTestHelper h){
         var level=h.getLevel();
@@ -72,7 +130,7 @@ public final class EncounterTests {
         Vec3 at=h.absolutePos(new BlockPos(3,8,3)).getCenter();p.teleportTo(level,at.x,at.y,at.z,0,0);
         var state=BeastState.get(level);var a=state.create(false,at);
         var g=Beasts.SERPENT.get().create(level);g.bind(a,new Section(0,0));level.addFreshEntity(g);
-        a.move=Move.BITE;
+        a.move=Move.BITE;a.clock=430;g.sync();
         p.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
         // Vanilla grants a brief join shield. Let the fixture reach an ordinary combat state.
         for(int i=0;i<65;i++)p.tick();
@@ -98,8 +156,13 @@ public final class EncounterTests {
         Encounters.damage(level,g,40800);h.assertTrue(a.health==40800,"Transition repeated during transformation");
         Animal restored=Animal.load(a.save());h.assertTrue(restored.phase==2 && restored.health==a.health && restored.move==Move.TRANSFORM,"Encounter save lost phase state");
         a.move=Move.REST;Stomach.swallow(p,a.id);Encounters.damage(level,g,40800);
-        h.assertTrue(!state.animals.containsKey(a.id) && !Stomach.inside(p) && p.level()==level,"Final defeat did not clean up");
+        h.assertTrue(a.move==Move.DEATH && a.health==0 && !Stomach.inside(p) && p.level()==level,"Final defeat did not release player or enter death scene");
+        Encounters.damage(level,g,40800);
+        Animal dying=Animal.load(a.save()); h.assertTrue(dying.move==Move.DEATH && dying.remaining==Animal.DEATH_TICKS,"Death scene lost on save");
         h.assertTrue(level.getEntitiesOfClass(ItemEntity.class,g.getBoundingBox().inflate(8),it->it.getItem().is(Items.NETHER_STAR)).size()==1,"Expected one victory reward");
-        level.getServer().getPlayerList().remove(p);channel.finishAndReleaseAll();h.succeed();
+        level.getServer().getPlayerList().remove(p);channel.finishAndReleaseAll();
+        h.runAfterDelay(Animal.DEATH_TICKS+2,()->{
+            h.assertTrue(!state.animals.containsKey(a.id),"Death scene failed to finish without observers");h.succeed();
+        });
     }
 }
