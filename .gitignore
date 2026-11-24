@@ -1,0 +1,12 @@
+.gradle/
+.gradle-home/
+build/
+run/
+run-server/
+run-observer/
+run-gametest/
+out/
+.idea/
+*.iml
+.DS_Store
+__pycache__/

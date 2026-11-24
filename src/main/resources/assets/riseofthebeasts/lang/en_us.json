@@ -1,0 +1,11 @@
+{
+  "entity.riseofthebeasts.windegow": "Windegow",
+  "item.riseofthebeasts.windegow_spawn_egg": "Windegow Spawn Egg",
+  "entity.riseofthebeasts.leviathan": "Leviathan",
+  "item.riseofthebeasts.leviathan_spawn_egg": "Leviathan Spawn Egg",
+  "entity.riseofthebeasts.jormungandr": "Jormungandr",
+  "item.riseofthebeasts.jormungandr_spawn_egg": "Jormungandr Spawn Egg",
+  "item.riseofthebeasts.sounding_shell": "Sounding Shell",
+  "effect.riseofthebeasts.serpent_venom": "Serpent Venom",
+  "entity.riseofthebeasts.beast_shot": "Serpent Projectile"
+}

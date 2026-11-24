@@ -1,0 +1,39 @@
+plugins {
+    id 'java'
+    id 'net.minecraftforge.gradle' version '6.0.54'
+}
+group = 'com.riseofthebeasts'
+version = '1.0.0'
+base { archivesName = 'rise-of-the-beasts' }
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
+    copyIdeResources = true
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+            property 'forge.logging.console.level', 'info'
+            property 'forge.enabledGameTestNamespaces', 'riseofthebeasts'
+            mods { riseofthebeasts { source sourceSets.main } }
+        }
+        client { }
+        server { workingDirectory project.file('run-server'); args '--nogui' }
+        gameTestServer { workingDirectory project.file('run-gametest') }
+    }
+}
+repositories { mavenCentral() }
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.1-47.4.10'
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+// Keep the isolated development server's ordinary console usable for test fixtures.
+tasks.withType(JavaExec).configureEach { if (name == 'runServer') standardInput = System.in }
+jar {
+    manifest.attributes('Specification-Title': 'Rise of the Beasts', 'Specification-Version': '1',
+        'Implementation-Title': 'Rise of the Beasts', 'Implementation-Version': project.version)
+    finalizedBy 'reobfJar'
+}
